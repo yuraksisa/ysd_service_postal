@@ -1,3 +1,4 @@
+require 'net/smtp'
 #
 # This module defines the delivery strategies
 #
