@@ -1,52 +1,22 @@
 require 'net/smtp'
-#
-# This module defines the delivery strategies
-#
-#
-#  :to            =>
-#  :from          =>
-#  :via           => :smtp ...
-#  :via_options   =>  
-#      :address              => 
-#      :port                 =>
-#      :user_name            =>
-#      :password             =>
-#      :enable_starttls_auto =>
-#      :domain               =>
-#      :authentication       =>
-#
-module DeliveryStrategies
+require 'ysd_delivery_strategies'
 
-  #
-  # Send the message using the Pony Express mail system
-  #
-  module PonyDeliveryStrategy
-  
-    def self.mail(message)
-    
-      Pony.mail message
-    
-    end
-  
-  end
-  
-  #
-  # Send the message using the simple working
-  #
-  module SimpleWorkerDeliveryStrategy
-  
-  end
-
-end
-
-# -----------------------------------------------------------------------
-# It represents the PostalService used to send messages :
 # 
-#   Configure the accounts, setup and start sending messages
-#   
-#   PostalService.accounts(:default, { via => :smtp, via_options => { :address => '', :port => '', :user_name => '', :password } })
-#   PostalService.setup()
-#   PostalService.post(:to => '', :body => '')
+# PostalService used to send messages
+# 
+# Usage:
+#
+#   # Configure the accounts, setup and start sending messages
+#  
+#   PostalService.accounts(:default, { via => :smtp, 
+#     via_options => { :address => 'smtp.server', :port => 'smpt.port', 
+#     :user_name => 'user', :password => 'password'} })
+#
+#   PostalService.setup(:enable_tls => true)
+#
+#   # Send a message
+#
+#   PostalService.instance.post(:to => '', :body => '')
 #
 # -----------------------------------------------------------------------
 module PostalService
@@ -54,26 +24,30 @@ module PostalService
   @@default_delivery_strategy = DeliveryStrategies::PonyDeliveryStrategy
   @@options  = {}
   @@accounts = {}
+  @@setup = false
 
   #
-  # @param [Hash] options
-  #    Represents the options to send the mail
+  # Post a message from an account using a delivery strategy
   #
-  #      :to
-  #      :cc
-  #      :cco
-  #      :subject
-  #      :body
-  #      :html_body
+  # @param [Hash] options
+  #
+  #      :to          Destination
+  #      :cc          Copy
+  #      :cco         Hidden copy
+  #      :subject     Subject
+  #      :body        Body
+  #      :html_body   HTML body
   #
   def self.post(options)
-  
-    account = @@accounts[options[:account] || :default]
-    message = options.merge(account)
     
-    # Send the message using the delivery strategy
-    delivery_strategy = @@options[:delivery_strategy] || @@default_delivery_strategy
-    delivery_strategy.mail message
+    raise 'No accounts have been defined. Use PostalService.accounts' if @@accounts.empty?
+    raise 'No valid account has been choosen' if options.has_key?(:account) and not @@accounts.has_key?(:account)
+    raise 'PostalService was not set up. Use PostalService.setup' unless @@setup
+
+    account = @@accounts[options[:account] || :default]
+    delivery_strategy = options[:delivery_strategy] || @@default_delivery_strategy
+    
+    delivery_strategy.mail options.merge(account)
     
   end
 
@@ -91,6 +65,7 @@ module PostalService
   #        To enable SMTP tls
   #
   def self.setup(options=nil)
+    @@setup = true
     @@options = options
     Net::SMTP.enable_tls(OpenSSL::SSL::VERIFY_NONE) if @@options[:enable_tls] 
   end
@@ -110,6 +85,5 @@ module PostalService
     @@accounts[account_id] = options
   end
   
-
 end
   
