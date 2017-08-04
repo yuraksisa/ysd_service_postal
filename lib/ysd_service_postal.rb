@@ -39,14 +39,16 @@ module PostalService
   #      :html_body   HTML body
   #
   def self.post(options)
-    
-    raise 'No accounts have been defined. Use PostalService.accounts' if @@accounts.empty?
+
+    settings_account = setup_account_from_settings
+
+    raise 'No accounts have been defined. Use PostalService.accounts' if @@accounts.empty? and settings_account.nil?
     raise 'No valid account has been choosen' if options.has_key?(:account) and not @@accounts.has_key?(:account)
     raise 'PostalService was not set up. Use PostalService.setup' unless @@setup
 
-    account = @@accounts[options[:account] || :default]
+    account = settings_account || @@accounts[options[:account] || :default]
     delivery_strategy = options[:delivery_strategy] || @@default_delivery_strategy
-    
+
     delivery_strategy.mail options.merge(account)
     
   end
@@ -84,6 +86,34 @@ module PostalService
   def self.account(account_id, options)
     @@accounts[account_id] = options
   end
-  
+
+  private
+
+  def self.setup_account_from_settings
+
+    from = SystemConfiguration::SecureVariable.get_value('smtp.from','.')
+    return nil if from.nil? or from == '.'
+
+    host = SystemConfiguration::SecureVariable.get_value('smtp.host','.')
+    port = SystemConfiguration::SecureVariable.get_value('smtp.port','.')
+    username = SystemConfiguration::SecureVariable.get_value('smtp.username','.')
+    password = SystemConfiguration::SecureVariable.get_value('smtp.password','.')
+    domain = SystemConfiguration::SecureVariable.get_value('smtp.domain','.')
+    authentication = SystemConfiguration::SecureVariable.get_value('smtp.authentication','login')
+    starttls_auto = SystemConfiguration::SecureVariable.get_value('smtp.starttls_auto','yes').to_bool
+
+    {:from => from,
+     :via => :smtp,
+     :via_options => {
+         :address => host,
+         :port => port,
+         :user_name => username,
+         :password => password,
+         :enable_starttls_auto => starttls_auto,
+         :domain => domain,
+         :authentication => authentication.to_sym }}
+
+  end
+
 end
   
