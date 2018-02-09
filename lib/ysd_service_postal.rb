@@ -38,14 +38,28 @@ module PostalService
   #      :body        Body
   #      :html_body   HTML body
   #
+  #      It also can include accounts setting options to force the email to be send with this
+  #      configuration
+  #
+  #      :from        From
+  #      :via         The way to send the email (:smtp - :sendmail - ...)
+  #      :via_options The via options
+  #
   def self.post(options)
 
-    settings_account = setup_account_from_settings
+    # Try to use the settings account from the options
+    settings_account = options.delete_if { |k,y| [:from, :via, :via_options].include?(k) }
 
-    raise 'No accounts have been defined. Use PostalService.accounts' if @@accounts.empty? and settings_account.nil?
-    raise 'No valid account has been choosen' if options.has_key?(:account) and not @@accounts.has_key?(:account)
-    raise 'PostalService was not set up. Use PostalService.setup' unless @@setup
+    unless settings_account.has_key?(:from) and settings_account.has_key?(:via) and settins_account.has_key?(:via_options)
 
+      settings_account = setup_account_from_settings
+
+      raise 'No accounts have been defined. Use PostalService.accounts' if @@accounts.empty? and settings_account.nil?
+      raise 'No valid account has been choosen' if options.has_key?(:account) and not @@accounts.has_key?(:account)
+      raise 'PostalService was not set up. Use PostalService.setup' unless @@setup
+    
+    end
+    
     account = settings_account || @@accounts[options[:account] || :default]
     delivery_strategy = options[:delivery_strategy] || @@default_delivery_strategy
 
