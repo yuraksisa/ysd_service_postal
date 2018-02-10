@@ -46,18 +46,24 @@ module PostalService
   #      :via_options The via options
   #
   def self.post(options)
+    p "options_before:#{options}"
     # Try to use the settings account from the options
     settings_account = options.select { |k,y| [:from, :via, :via_options].include?(k) }
     options.delete_if { |k,y| [:from, :via, :via_options].include?(k) }
 
+    p "settings_account:#{settings_account.inspect}"
+    p "options_after:#{options.inspect}"
     unless settings_account.has_key?(:from) and settings_account.has_key?(:via) and settings_account.has_key?(:via_options)
 
       settings_account = setup_account_from_settings
+      p "settings_account_from_settings:#{settings_account.inspect}"
       raise 'No accounts have been defined. Use PostalService.accounts' if @@accounts.empty? and settings_account.nil?
       raise 'No valid account has been choosen' if options.has_key?(:account) and not @@accounts.has_key?(:account)
       raise 'PostalService was not set up. Use PostalService.setup' unless @@setup
     
     end
+    
+    p "options:#{options.inspect}"
     
     account = settings_account || @@accounts[options[:account] || :default]
     delivery_strategy = options[:delivery_strategy] || @@default_delivery_strategy
