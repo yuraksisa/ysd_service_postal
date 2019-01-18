@@ -1,4 +1,4 @@
-require 'net/smtp'
+#require 'net/smtp'
 require 'ysd_delivery_strategies'
 
 # 
@@ -68,7 +68,12 @@ module PostalService
     account = settings_account || @@accounts[options[:account] || :default]
     delivery_strategy = options[:delivery_strategy] || @@default_delivery_strategy
 
-    delivery_strategy.mail options.merge(account)
+    if account[:via_options] and (account[:via_options][:address] == '.' or account[:via_options][:port] == '.' or
+       account[:via_options][:user_name] == '.' or account[:via_options][:password] == '.')
+      p "Incomplete smtp configuration #{account.inspect}"
+    else  
+      delivery_strategy.mail options.merge(account)
+    end  
     
   end
 
@@ -88,7 +93,7 @@ module PostalService
   def self.setup(options=nil)
     @@setup = true
     @@options = options
-    Net::SMTP.enable_tls(OpenSSL::SSL::VERIFY_NONE) if @@options[:enable_tls] 
+    #Net::SMTP.enable_tls(OpenSSL::SSL::VERIFY_NONE) if @@options[:enable_tls]
   end
 
   #
